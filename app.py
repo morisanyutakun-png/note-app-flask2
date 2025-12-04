@@ -118,7 +118,7 @@ note記事として読者に価値ある記事を**段落ごとに順番に生�
 - 補足: {tone_keywords}
 
 【著者情報（記事に含める場合）】
-- 記事に含める: {'はい' if author_info_include else 'いいえ'}
+- 記事に含める: {'はい' if author_name_include else 'いいえ'}
 - 家族構成: {author_family}
 - アピールポイント・経験: {author_strengths}
 - 著者名: {author_name}
