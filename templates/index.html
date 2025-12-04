@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>noteプロンプト生成フォーム</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .hidden { display: none; }
+    </style>
+    <script>
+        // 「その他」選択時に入力欄を表示する関数
+        function toggleOther(selectElem, targetId) {
+            const otherField = document.getElementById(targetId);
+            if (!otherField) return;
+            const inputs = otherField.querySelectorAll("input, textarea");
+            if (selectElem.value === "その他") {
+                otherField.classList.remove("hidden");
+                inputs.forEach(input => input.required = true);
+            } else {
+                otherField.classList.add("hidden");
+                inputs.forEach(input => {
+                    input.value = "";
+                    input.required = false;
+                });
+            }
+        }
+
+        // ページロード時に「その他」が選択されていた場合に表示
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("select[data-other-target]").forEach(sel => {
+                const targetId = sel.getAttribute("data-other-target");
+                toggleOther(sel, targetId);
+            });
+        });
+    </script>
+</head>
+<body>
+<h1>note プロンプト自動生成フォーム（その他自由記述）</h1>
+<form method="POST" action="/generate" target="result_frame" id="promptForm">
+
+    <!-- 著者の環境・アピールポイント -->
+    <div class="section">
+        <h2>著者の環境・アピールポイント（任意）</h2>
+
+        <label>家族構成:</label>
+        <select name="author_family" onchange="toggleOther(this,'author_family_other')">
+            <option value="" selected>選択なし</option>
+            <option value="独身">独身</option>
+            <option value="既婚／子どもあり">既婚／子どもあり</option>
+            <option value="既婚／子どもなし">既婚／子どもなし</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="author_family_other" class="hidden">
+            <input type="text" name="author_family_other_input" class="other-input" placeholder="家族構成を入力">
+        </div>
+
+        <label>著者としてのアピールポイント・経験:</label>
+        <select name="author_strengths" onchange="toggleOther(this,'author_strengths_other')">
+            <option value="" selected>選択なし</option>
+            <option value="教育経験が豊富">教育経験が豊富</option>
+            <option value="実務経験がある">実務経験がある</option>
+            <option value="副業／起業経験あり">副業／起業経験あり</option>
+            <option value="執筆経験がある">執筆経験がある</option>
+            <option value="心理学やコーチングの知見あり">心理学やコーチングの知見あり</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="author_strengths_other" class="hidden">
+            <input type="text" name="author_strengths_other_input" class="other-input" placeholder="アピールポイントを入力">
+        </div>
+
+        <!-- 著者名 -->
+        <h2>著者名<span class="recommended">入力推奨</span></h2>
+        <input type="text" id="author_name" name="author_name" placeholder="例: Taro">
+
+        <!-- 記事に含めるかのチェック -->
+        <div class="form-check checkbox-card">
+            <input type="checkbox" id="author_name_include" name="author_name_include" value="yes">
+            <label for="author_name_include">これらの情報を記事に含めてもよい</label>
+        </div>
+    </div>
+
+    <!-- ペルソナ -->
+    <div class="section">
+        <h2>ペルソナ（読者像）の情報<span class="recommended">入力推奨</span></h2>
+
+        <label>年齢:</label>
+        <select name="persona_age" onchange="toggleOther(this,'persona_age_other')" data-other-target="persona_age_other">
+            <option value="" selected>選択なし</option>
+            <option value="10代">10代</option>
+            <option value="20代">20代</option>
+            <option value="30代">30代</option>
+            <option value="40代">40代</option>
+            <option value="50代以上">50代以上</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="persona_age_other" class="hidden"><input type="text" name="persona_age_other_input" placeholder="年齢を入力"></div>
+
+        <label>性別:</label>
+        <select name="persona_gender">
+            <option value="" selected>選択なし</option>
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+            <option value="その他">その他</option>
+            <option value="無回答">無回答</option>
+        </select>
+
+        <label>職業:</label>
+        <select name="persona_job" onchange="toggleOther(this,'persona_job_other')" data-other-target="persona_job_other">
+            <option value="" selected>選択なし</option>
+            <option value="学生">学生</option>
+            <option value="会社員">会社員／社会人</option>
+            <option value="フリーランス／副業">フリーランス／副業</option>
+            <option value="公務員">公務員</option>
+            <option value="主婦／主夫">主婦／主夫</option>
+            <option value="クリエイター／ライター">クリエイター／ライター</option>
+            <option value="ITエンジニア">ITエンジニア／技術職</option>
+            <option value="心理学者">心理学者</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="persona_job_other" class="hidden"><input type="text" name="persona_job_other_input" placeholder="職業を入力"></div>
+
+        <label>興味・趣味:</label>
+        <select name="persona_hobby" onchange="toggleOther(this,'persona_hobby_other')" data-other-target="persona_hobby_other">
+            <option value="" selected>選択なし</option>
+            <option value="読書">読書</option>
+            <option value="プログラミング">プログラミング</option>
+            <option value="副業">副業</option>
+            <option value="投資・お金">投資・お金</option>
+            <option value="健康・ダイエット">健康・ダイエット</option>
+            <option value="メンタルヘルス／セルフケア">メンタルヘルス／セルフケア</option>
+            <option value="学習／資格">学習／資格</option>
+            <option value="ライフスタイル改善">ライフスタイル改善</option>
+            <option value="旅行／ライフログ">旅行／ライフログ</option>
+            <option value="心理学">心理学</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="persona_hobby_other" class="hidden"><input type="text" name="persona_hobby_other_input" placeholder="趣味・興味を入力"></div>
+
+        <label>読者の悩み:</label>
+        <select name="persona_pain" onchange="toggleOther(this,'persona_pain_other')" data-other-target="persona_pain_other">
+            <option value="" selected>選択なし</option>
+            <option value="時間がない／忙しい">時間がない／忙しい</option>
+            <option value="スキルが足りない">スキルが足りない</option>
+            <option value="モチベーション維持が難しい">モチベーション維持が難しい</option>
+            <option value="健康・体調管理">健康・体調管理</option>
+            <option value="将来の不安／キャリア">将来の不安／キャリア</option>
+            <option value="習慣化できない">習慣化できない</option>
+            <option value="情報が多すぎる／整理したい">情報が多すぎる／整理したい</option>
+            <option value="自己肯定感が低い">自己肯定感が低い</option>
+            <option value="ストレス軽減したい">ストレス軽減したい</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="persona_pain_other" class="hidden"><input type="text" name="persona_pain_other_input" placeholder="悩みを入力"></div>
+
+        <label>読者のゴール:</label>
+        <select name="persona_goal" onchange="toggleOther(this,'persona_goal_other')" data-other-target="persona_goal_other">
+            <option value="" selected>選択なし</option>
+            <option value="スキルアップ／資格取得">スキルアップ／資格取得</option>
+            <option value="副業を始めたい">副業を始めたい</option>
+            <option value="習慣化したい">習慣化したい</option>
+            <option value="健康を維持／改善したい">健康を維持／改善したい</option>
+            <option value="人生の方向性を見つけたい">人生の方向性を見つけたい</option>
+            <option value="時間を有効活用したい">時間を有効活用したい</option>
+            <option value="経済的余裕を得たい">経済的余裕を得たい</option>
+            <option value="自己理解を深めたい">自己理解を深めたい</option>
+            <option value="精神的に安定したい">精神的に安定したい</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="persona_goal_other" class="hidden"><input type="text" name="persona_goal_other_input" placeholder="ゴールを入力"></div>
+    </div>
+
+    <!-- 記事テーマ -->
+    <div class="section">
+        <h2>記事テーマ<span class="recommended">入力推奨</span></h2>
+        <label>主題:</label>
+        <input type="text" name="article_main" placeholder="例：短期間で英語力を上げる勉強法">
+
+        <label>記事タイプ:</label>
+        <select name="article_type" onchange="toggleOther(this,'article_type_other')" data-other-target="article_type_other">
+            <option value="" selected>選択なし</option>
+            <option value="How-to／ノウハウ">How-to／ノウハウ</option>
+            <option value="解説／知識共有">解説／知識共有</option>
+            <option value="経験談／体験談">経験談／体験談</option>
+            <option value="レビュー">レビュー</option>
+            <option value="コラム／エッセイ">コラム／エッセイ</option>
+            <option value="考察／分析">考察／分析</option>
+            <option value="インタビュー風">インタビュー風</option>
+            <option value="まとめ記事／チェックリスト">まとめ記事／チェックリスト</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="article_type_other" class="hidden"><input type="text" name="article_type_other_input" placeholder="記事タイプを入力"></div>
+    </div>
+
+    <!-- 記事目的 -->
+    <div class="section">
+        <h2>記事目的・価値 <span class="recommended">入力推奨</span></h2>
+        <label class="required">記事の目的:</label>
+        <select name="article_purpose" onchange="toggleOther(this,'article_purpose_other')" data-other-target="article_purpose_other" required>
+            <option value="" selected disabled>選択してください</option>
+            <option value="情報提供／知識共有">情報提供／知識共有</option>
+            <option value="自己表現・思考整理">自己表現・思考整理</option>
+            <option value="副業収益化／販売">副業収益化／有料記事販売</option>
+            <option value="ブランディング／信頼構築">ブランディング／信頼構築</option>
+            <option value="SNS拡散／拡散狙い">SNS拡散／拡散狙い</option>
+            <option value="コミュニティ形成">コミュニティ形成</option>
+            <option value="自己振り返り">自己振り返り</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="article_purpose_other" class="hidden"><input type="text" name="article_purpose_other_input" placeholder="記事目的を入力"></div>
+
+        <label>読者への価値・伝えたいこと:</label>
+        <textarea name="article_value" placeholder="例：勉強法を理解させ、行動を促す"></textarea>
+
+        <label>CTA（読者にしてほしい行動）:</label>
+        <textarea name="article_cta" placeholder="例：教材購入リンクをクリック"></textarea>
+    </div>
+
+    <!-- トーン・文体 -->
+    <div class="section">
+        <h2>トーン・文体 <span class="recommended">入力推奨</span></h2>
+        <label class="required">文体:</label>
+        <select name="tone_style" onchange="toggleOther(this,'tone_style_other')" data-other-target="tone_style_other" required>
+            <option value="" selected disabled>選択してください</option>
+            <option value="丁寧／優しい">丁寧／優しい</option>
+            <option value="カジュアル／フレンドリー">カジュアル／フレンドリー</option>
+            <option value="論理的／専門的">論理的／専門的</option>
+            <option value="親しみやすい／読みやすい">親しみやすい／読みやすい</option>
+            <option value="熱量高め／情熱的">熱量高め／情熱的</option>
+            <option value="ゆるふわ／リラックス">ゆるふわ／リラックス</option>
+            <option value="真面目／真摯">真面目／真摯</option>
+            <option value="ユーモア／ラフ">ユーモア／ラフ</option>
+            <option value="その他">その他</option>
+        </select>
+        <div id="tone_style_other" class="hidden"><input type="text" name="tone_style_other_input" placeholder="文体を入力"></div>
+
+        <label>自由補足（任意）:</label>
+        <textarea name="tone_keywords" placeholder="例：初心者でも理解できる優しい表現"></textarea>
+    </div>
+
+<!-- 段落テンプレート -->
+<div class="section">
+    <h2>段落テンプレート（ドラッグ＆自由編集対応）<span class="recommended">入力推奨</span></h2>
+
+<label>テンプレート選択:</label>
+<select id="template_select" name="article_headings_template">
+    <option value="" selected>選択なし</option>
+    <option value="howto">HowTo型 - 課題提示 → 手順 → 実践</option>
+    <option value="analysis">分析型 - 現状分析 → 課題整理 → 解決策提示</option>
+    <option value="practice">実践型 - 導入 → 実践例 → 学び・改善</option>
+    <option value="result">成果型 - 方法提示 → 実践 → 応用・まとめ</option>
+    <option value="empathy">共感型 - きっかけ・経験 → 試行錯誤 → 結果・学び</option>
+    <option value="other">空テンプレ - 自由にステップを追加可能</option>
+</select>
+
+    <p style="font-size:13px;color:#555;">テンプレを選ぶとステップが自動追加されます。</p>
+
+    <div id="steps_container"></div>
+
+    <button type="button" id="add_step_btn" style="margin-top:15px;">＋ ステップを追加（入力補助付き）</button>
+</div>
+
+<!-- SortableJS -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+// ステップテンプレート
+const stepTemplates = {
+    howto: ["問題提示","背景説明","現状分析","目標設定","準備","実践手順1","実践手順2","実践手順3","追加応用","注意点","効果","まとめとCTA"],
+    analysis: ["問題提起","現状分析","課題整理","具体例","解決策","手順1","手順2","手順3","注意点","効果","まとめ","次の行動"],
+    practice: ["導入","課題認識","実践例","分析","学び","改善","まとめ","CTA"],
+    result: ["導入","問題提起","方法提示","具体例","実践","応用","注意点","まとめ","次のステップ","CTA"],
+    empathy: ["きっかけ","経験談","問題直面","試行錯誤","実践内容","結果","学び","今後の活かし方","注意点","まとめ","CTA"],
+    other: []
+};
+
+// ステップ補助リスト（入力補助）
+const stepOptions = [
+    "問題提示","背景説明","現状分析","目標設定","準備","実践手順1","実践手順2","実践手順3",
+    "追加応用","注意点","効果","まとめとCTA",
+    "問題提起","課題整理","具体例","解決策","手順1","手順2","手順3",
+    "導入","課題認識","実践例","分析","学び","改善","CTA",
+    "方法提示","実践","応用","次のステップ",
+    "きっかけ","経験談","問題直面","試行錯誤","実践内容","結果","今後の活かし方"
+];
+
+// DOM
+const templateSelect = document.getElementById("template_select");
+const stepsContainer = document.getElementById("steps_container");
+const addStepBtn = document.getElementById("add_step_btn");
+
+// テンプレ選択
+templateSelect.addEventListener("change", function() {
+    const type = this.value;
+    if (!type) return;
+    stepsContainer.innerHTML = "";
+    stepTemplates[type].forEach(step => addStep(step));
+});
+
+// ステップ追加
+addStepBtn.onclick = () => addStep("");
+
+// ステップ追加関数（入力欄＋補完）
+function addStep(prefill = "") {
+    const div = document.createElement("div");
+    div.className = "step-item";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.border = "1px solid #ddd";
+    div.style.padding = "10px";
+    div.style.margin = "10px 0";
+    div.style.borderRadius = "5px";
+    div.style.background = "#fafafa";
+    div.style.gap = "5px"; // 入力欄とボタンの間隔
+
+    // datalist を使って入力補助
+    const datalistId = "step_list_" + Math.random().toString(36).substring(2,8);
+
+    div.innerHTML = `
+        <input type="text" class="step_title" name="article_headings[]" list="${datalistId}" placeholder="ステップタイトル" value="${prefill}" style="flex:1; padding:5px;">
+        <datalist id="${datalistId}">
+            ${stepOptions.map(opt => `<option value="${opt}">`).join("")}
+        </datalist>
+        <button type="button" class="remove-step" style="
+            background-color:#f44336;
+            color:white;
+            border:none;
+            border-radius:3px;
+            padding:4px 8px;
+            cursor:pointer;
+            font-size:14px;
+        ">削除</button>
+    `;
+
+    // 削除ボタン
+    div.querySelector(".remove-step").onclick = () => div.remove();
+
+    stepsContainer.appendChild(div);
+}
+
+
+
+// ドラッグ並び替え
+Sortable.create(stepsContainer, {
+    animation: 150,
+    handle: ".step-item",
+});
+</script>
+
+
+
+
+
+   <!-- 文字量（必須） -->
+<div class="section">
+    <h2>文字量<span class="recommended">入力推奨</span></h2>
+    <label class="required">希望文字数:</label>
+    <select name="constraint_length" required>
+        <option value="" selected disabled>選択してください</option>
+        <option value="～1000字">～1000字</option>
+        <option value="1000～3000字">1000～3000字</option>
+        <option value="3000～7000字">3000～7000字</option>
+        <option value="7000～12000字">7000～12000字</option>
+        <option value="12000字以上">12000字以上</option>
+    </select>
+    <p class="note">※記事作成に必須の情報です。未選択では送信できません。</p>
+</div>
+
+<!-- 補助情報（任意） -->
+<div class="section">
+    <h2>補助情報（任意）</h2>
+
+    <label>禁止ワード・表現:</label>
+    <textarea name="constraint_forbidden" placeholder="例：過度な誇張表現、ネガティブ表現"></textarea>
+
+    <label>SEOキーワード: <span class="note">(検索上位を意識した複数キーワード、カンマ区切り可)</span></label>
+    <textarea name="constraint_seo" placeholder="例：英語学習, TOEIC, 短期習得"></textarea>
+
+    <label>参考記事・URL（複数可）:</label>
+    <div id="reference_container">
+        <input type="text" name="extra_reference[]" placeholder="参考記事のURLを入力">
+    </div>
+    <button type="button" onclick="addReference()">＋追加</button>
+
+    <label>記事に必ず含めたい要素・具体例:</label>
+    <textarea name="must_include" placeholder="例：実践例、表や図、著者の体験談"></textarea>
+
+    <label>記事に避けたい表現・トーン:</label>
+    <textarea name="avoid_tone" placeholder="例：専門用語だらけ、攻撃的表現"></textarea>
+</div>
+
+<script>
+function addReference() {
+    const container = document.getElementById("reference_container");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = "extra_reference[]";
+    input.placeholder = "参考記事のURLを入力";
+    container.appendChild(input);
+}
+</script>
+
+
+    <button type="submit">プロンプト生成</button>
+</form>
+<!-- 自動送信スクリプト修正版 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("promptForm");
+    let submitTimeout = null;
+
+    form.querySelectorAll("select, input[type=text], textarea").forEach(elem => {
+        elem.addEventListener("change", () => {
+            if (submitTimeout) return; // 連打防止
+            submitTimeout = setTimeout(() => {
+                form.submit();
+                submitTimeout = null;
+            }, 300); // 0.3秒後に送信
+        });
+    });
+});
+
+</script>
+
+
+</body>
+</html>

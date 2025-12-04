@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta charset="UTF-8">
+    <title>Split View</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        iframe {
+            flex: 1;
+            border: none;
+            height: 100%;
+            width: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 左：index.html -->
+    <iframe src="{{ url_for('form') }}" name="form_frame"></iframe>
+
+    <!-- 右：result.html -->
+    <iframe src="{{ url_for('result') }}" name="result_frame" id="result_frame"></iframe>
+</body>
+</html>
