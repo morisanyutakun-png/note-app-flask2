@@ -43,7 +43,6 @@ label {
     color: orange;       /* 柔らかめにオレンジに */
     margin-left: 5px;
     font-size: 0.9em;
-    font-style: italic;  /* 任意で斜体にして推奨感を出す */
 }
 
 /* ===== 注釈 ===== */
@@ -173,6 +172,40 @@ input.other-input {
     background-color: #d4ebfb;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
+
+/* ===== ペルソナブロック ===== */
+.persona-block {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+
+    width: 100%;          /* 親コンテナいっぱい */
+    max-width: 1200px;    /* 他のカードと同じ最大幅 */
+    margin: 0 auto 20px auto; /* 上下余白20px、左右中央寄せ */
+    box-sizing: border-box;
+}
+
+.persona-block label {
+    font-weight: bold;
+}
+
+.persona-block select,
+.persona-block input,
+.persona-block textarea {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.persona-block .hidden {
+    display: none;
+}
+
 
 /* ===== スマホ対応 ===== */
 @media (max-width: 768px) {

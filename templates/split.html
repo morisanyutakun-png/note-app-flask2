@@ -19,11 +19,13 @@
     </style>
 </head>
 <body>
+    <!-- 左：フォーム -->
+    <iframe src="{{ url_for('form') }}" name="form_frame" style="flex: none; width: 50%;"></iframe>
 
-    <!-- 左：index.html -->
-    <iframe src="{{ url_for('form') }}" name="form_frame"></iframe>
+    <!-- 右：結果 -->
+    <iframe src="{{ url_for('result') }}" name="result_frame" id="result_frame" style="flex: 1; border: 1px solid #ccc;"></iframe>
 
-    <!-- 右：result.html -->
-    <iframe src="{{ url_for('result') }}" name="result_frame" id="result_frame"></iframe>
+
 </body>
+
 </html>

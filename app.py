@@ -8,20 +8,27 @@ app = Flask(__name__)
 def root():
     return render_template("split.html")
 
-@app.route("/result")
-def result():
-    return render_template("result.html")
-
 # 左側：フォーム
 @app.route("/form")
 def form():
     return render_template("index.html")
 
+@app.route("/result", methods=["GET", "POST"])
+def result():
+    if request.method == "POST":
+        data = request.form.get("input_name")
+        prompt = data
+    else:
+        prompt = "ここに生成されたプロンプトが表示されます。"  # 初期表示用
+    return render_template("result.html", prompt=prompt)
+
+
+
 
 # 右側：POST結果表示（result.html）
 @app.route("/generate", methods=["POST"])
 def generate():
-        form_data = request.form.to_dict()
+        context = {}  # ← これ必須！
         # --- ペルソナ（必須） ---
         persona_age_select = request.form.get("persona_age")
         persona_age = request.form.get("persona_age_other_input") if persona_age_select == "その他" else persona_age_select
@@ -40,11 +47,44 @@ def generate():
         persona_goal_select = request.form.get("persona_goal")
         persona_goal = request.form.get("persona_goal_other_input") if persona_goal_select == "その他" else persona_goal_select
 
+        # --- 追加項目 ---
+        persona_level_select = request.form.get("persona_level")
+        persona_level = request.form.get("persona_level_other_input") if persona_level_select == "その他" else persona_level_select
+
+        persona_situation_select = request.form.get("persona_situation")
+        persona_situation = request.form.get("persona_situation_other_input") if persona_situation_select == "その他" else persona_situation_select
+
+        persona_failed_select = request.form.get("persona_failed")
+        persona_failed = request.form.get("persona_failed_other_input") if persona_failed_select == "その他" else persona_failed_select
+
+        persona_fear_select = request.form.get("persona_fear")
+        persona_fear = request.form.get("persona_fear_other_input") if persona_fear_select == "その他" else persona_fear_select
+
+        persona_life_select = request.form.get("persona_life")
+        persona_life = request.form.get("persona_life_other_input") if persona_life_select == "その他" else persona_life_select
+
+        # context にまとめる
+        context["persona"] = {
+            "age": persona_age,
+            "gender": persona_gender,
+            "job": persona_job,
+            "hobby": persona_hobby,
+            "pain": persona_pain,
+            "goal": persona_goal,
+            "level": persona_level,
+            "situation": persona_situation,
+            "failed": persona_failed,
+            "fear": persona_fear,
+            "life": persona_life,
+        }
+        # context["persona"] は既に作成済み
+        persona = context["persona"]
+
+
         # --- 記事テーマ ---
         article_main = request.form.get("article_main")
         article_type_select = request.form.get("article_type")
         article_type = request.form.get("article_type_other_input") if article_type_select == "その他" else article_type_select
-
 
         # --- 記事目的・価値 ---
         article_purpose_select = request.form.get("article_purpose")
@@ -62,47 +102,156 @@ def generate():
         tone_keywords = request.form.get("tone_keywords")  # 任意
 
         # --- 著者情報 ---
-        author_info_include = request.form.get("author_info_include")
-        author_family_select = request.form.get("author_family")
-        author_family = request.form.get("author_family_other_input") if author_family_select == "その他" else author_family_select
+        author_viewpoint_select = request.form.get("author_viewpoint")
+        author_viewpoint = (
+            request.form.get("author_viewpoint_other_input")
+            if author_viewpoint_select == "その他"
+            else author_viewpoint_select
+        )
+
         author_strengths_select = request.form.get("author_strengths")
-        author_strengths = request.form.get("author_strengths_other_input") if author_strengths_select == "その他" else author_strengths_select
-        # フォームから取得
+        author_strengths = (
+            request.form.get("author_strengths_other_input")
+            if author_strengths_select == "その他"
+            else author_strengths_select
+        )
         author_name = request.form.get("author_name", "")
         author_name_include = request.form.get("author_name_include") == "yes"
 
-        # プロンプトに条件付きで追加
-        prompt = "記事生成のプロンプト本文ここから"
-        if author_name_include and author_name:
-            prompt += f"\n著者名: {author_name}\n"
+        # --- 記事全体の文章構成（フレームワーク） ---
+        # フォームで選択されたラジオボタンの値（フル表記）を取得
+        framework = request.form.get(
+            "framework",
+            "生成段階でAIが最適構成を判断"  # デフォルト値
+        )
 
-        # --- 段落見出し ---
-        article_headings_template = request.form.get("article_headings_template")
-        article_headings = [s for s in request.form.getlist("article_headings[]") if s.strip()]
+        # --- 段落情報取得 ---
+        article_headings_manual = request.form.getlist("article_headings[]")
+        article_headings_auto = request.form.getlist("article_headings_auto[]")
+        article_purposes_raw = request.form.getlist("article_purposes[]")
+        article_methods_raw = request.form.getlist("article_method_suggest[]")
+
+        # --- AI/手動切替 ---
+        article_modes = []
+        article_headings = []
+
+        for manual, auto in zip(article_headings_manual, article_headings_auto):
+            if manual.strip():  # 手動入力があれば manual
+                article_modes.append("manual")
+                article_headings.append(manual.strip())
+            else:  # 空なら auto
+                article_modes.append("auto")
+                article_headings.append(auto.strip())
+
+        # article_purposes_raw はそのまま利用可能
+        article_purposes = [p.strip() for p in article_purposes_raw]
+
+        # --- 段落生成手法をフル表記に変換 ---
+        method_fullname_map = {
+            "story": "ストーリーテリング法：導入→葛藤→解決→結論の流れ",
+            "prep": "PREP法：Point→Reason→Example→Point",
+            "aida": "AID法：Attention→Interest→Desire→Action",
+            "bullet": "箇条書き"
+        }
+
+        article_methods = [
+            method_fullname_map.get(m.strip(), "記事全体の設定に従う") for m in article_methods_raw
+        ]
+
+        # 長さを揃える
+        max_len = max(len(article_headings), len(article_methods), len(article_purposes), len(article_modes))
+        while len(article_headings) < max_len: article_headings.append("")
+        while len(article_methods) < max_len: article_methods.append("")
+        while len(article_purposes) < max_len: article_purposes.append("")
+        while len(article_modes) < max_len: article_modes.append("auto")
+
+        # 段落情報構築
+        article_sections = []
+        for h, p, m, mode in zip(article_headings, article_purposes, article_methods, article_modes):
+            if not h and not p and not m:
+                continue
+            article_sections.append({
+                "heading": h,
+                "purpose": p,
+                "method": m,
+                "mode": mode
+            })
+
+        context["article_sections"] = article_sections
+
+        # プロンプト向け article_flow（自然文形式）
+        if article_sections:
+            article_flow_lines = []
+            for idx, sec in enumerate(article_sections):
+                # Mode が manual の場合は実際の見出しを大見出しとして表示
+                if sec["mode"] == "manual" and sec["heading"]:
+                    mode_text = sec["heading"]  # 手動入力した見出しを大見出しとして表示
+                else:
+                    mode_text = "AIでSEO最適生成"  # AI生成の場合の表示
+
+                method_text = sec["method"] or "記事全体設定に従う"
+                purpose_text = sec["purpose"] or "-"
+
+                article_flow_lines.append(
+                    f"{idx+1}. {sec['heading']}\n"
+                    f"   - 段落の役割: {purpose_text}\n"
+                    f"   - 段落生成手法: {method_text}\n"
+                    f"   - 大見出し: {mode_text}"
+                )
+            article_flow = "\n".join(article_flow_lines)
+        else:
+            article_flow = "指定なし"
+
+        context["article_flow"] = article_flow
 
         # --- 補助情報 ---
-        constraint_length = request.form.get("constraint_length")
-        constraint_forbidden = request.form.get("constraint_forbidden")
-        constraint_seo = request.form.get("constraint_seo")
-        extra_reference = request.form.getlist("extra_reference[]")  # 複数URL対応
-        structure_hint = request.form.get("structure_hint")  # 任意
+        constraint_length = request.form.get("constraint_length", "")
+        constraint_forbidden = request.form.get("constraint_forbidden", "")
+        constraint_seo = request.form.get("constraint_seo", "").strip()
 
-        # --- 任意補助情報 ---
-        must_include = request.form.get("must_include")
-        avoid_tone = request.form.get("avoid_tone")
+        search_intent = request.form.get("search_intent", "")
+        search_intent_other = request.form.get("search_intent_other", "").strip()
+        if search_intent == "other" and search_intent_other:
+            search_intent = search_intent_other
+
+        must_include = request.form.get("must_include", "")
+        avoid_tone = request.form.get("avoid_tone", "")
+
+        # extra_reference は未定義だとエラーになるので安全に初期化
+        extra_reference = request.form.getlist("extra_reference") if "extra_reference" in request.form else []
+
+        # --- 著者情報ブロック ---
+        author_info_block = f"""
+【著者情報】
+- 記事の視点: {author_viewpoint}
+- 著者の強み: {author_strengths}
+- 著者名: {author_name}
+"""
+        if not author_name_include:
+            author_info_block = "※著者情報は書かないでください" 
 
         # --- プロンプト生成 ---
         prompt = f"""
-あなたは高度なコンテンツクリエイター兼note編集者です。
-note記事として読者に価値ある記事を**段落ごとに順番に生成**してください。
+あなたは高度なコンテンツクリエイター兼note編集者です。読者に価値あるnote記事を段落ごとに順番に生成してください。
 
-【ペルソナ】
-- 年齢: {persona_age}
-- 性別: {persona_gender}
-- 職業: {persona_job}
-- 趣味・興味: {persona_hobby}
-- 読者の悩み: {persona_pain}
-- 読者のゴール: {persona_goal}
+{author_info_block}
+
+【ペルソナ（読者像）】
+- 年齢: {persona['age']}
+- 性別: {persona['gender']}
+- 職業: {persona['job']}
+- 趣味・興味: {persona['hobby']}
+- 読者の悩み: {persona['pain']}
+- 読者のゴール: {persona['goal']}
+- 知識レベル: {persona['level']}
+- 現在の状況: {persona['situation']}
+- 過去の失敗経験: {persona['failed']}
+- 恐れていること: {persona['fear']}
+- 生活スタイル: {persona['life']}
+
+【SEO】
+- 想定検索意図: {search_intent}
+- SEOキーワード: {constraint_seo}
 
 【記事テーマ】
 - 主題: {article_main}
@@ -117,14 +266,13 @@ note記事として読者に価値ある記事を**段落ごとに順番に生�
 - スタイル: {tone_style}
 - 補足: {tone_keywords}
 
-【著者情報（記事に含める場合）】
-- 記事に含める: {'はい' if author_name_include else 'いいえ'}
-- 家族構成: {author_family}
-- アピールポイント・経験: {author_strengths}
-- 著者名: {author_name}
+
 
 【記事の大まかな流れ】
-- 全体の流れ: {', '.join(article_headings) if article_headings else "指定なし"}
+- 全体構成: {framework}
+
+- 段落情報:
+{article_flow}
 
 【補助情報】
 - 文字量: {constraint_length}
@@ -135,7 +283,7 @@ note記事として読者に価値ある記事を**段落ごとに順番に生�
 - 記事に避けたい表現・トーン: {avoid_tone}
 
 【生成ルール】
-1. まず、タイトルと、【著者情報（記事に含める場合）】のみをもとにした著者紹介や導入の段落を作成してください。
+1. まず、タイトルと、【著者情報】のみをもとにした著者紹介や導入の段落を作成してください。
 2. 次の段落も自動で続けて生成できます。
 3. 生成途中で止めたい場合は「STOP」と入力してください。
 4. 次の段落を生成するときは、必ず前の段落の内容を踏まえて文脈を保持してください。
@@ -150,7 +298,7 @@ note記事として読者に価値ある記事を**段落ごとに順番に生�
 5. 各段落は起承転結を意識して論理的かつ具体的に書くこと。
 6. 導入（読者の共感を引く部分）から始めてください。
 7. 既に生成した段落がある場合は、その内容を渡して文脈を保持しつつ次の段落を生成してください。
-8. 段落ごとにCTAや読者への気づきが自然に含まれるようにしてください。
+8. 段落ごとにCTAや読者への気づきが自然に含まれるようにしてください。CTAの直接的な表現はしないように。
 9. 禁止ワードを絶対に使用しないでください。
 10. 各段落を生成したら、その段落だけを出力してください。次の段落は別で生成してください。
 11. 段落生成後、コピーして順番に貼り付けるだけで記事完成できる設計にしてください。
@@ -165,11 +313,9 @@ note記事として読者に価値ある記事を**段落ごとに順番に生�
 # 次の大見出し
 次の段落の内容をここに書きます。  
 """
+        context["prompt"] = prompt  # ← 必須
         return render_template("result.html",prompt=prompt)
 
 
 if __name__ == "__main__":
-    # Render 用に外部アクセス & ポート指定
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)  # 外部アクセス可能に
-
+    app.run(debug=True)
